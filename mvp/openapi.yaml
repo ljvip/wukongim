@@ -1,0 +1,121 @@
+openapi: 3.0.3
+info:
+  title: WeChat-like IM MVP Business API
+  version: 0.1.0
+  description: Business API layered on top of WuKongIM.
+servers:
+  - url: https://api.example.com
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/auth/register:
+    post:
+      security: []
+      summary: Register by username, email, or phone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201': { description: Created }
+        '409': { description: Account already exists }
+  /api/v1/auth/login:
+    post:
+      security: []
+      summary: Login and obtain business/JM tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+  /api/v1/users/me:
+    get:
+      summary: Get current profile
+      responses:
+        '200': { description: Profile }
+    patch:
+      summary: Update nickname or avatar
+      responses:
+        '200': { description: Updated }
+  /api/v1/groups:
+    post:
+      summary: Create a group
+      responses:
+        '201': { description: Created }
+  /api/v1/groups/{group_id}/members:
+    post:
+      summary: Add group members
+      parameters:
+        - $ref: '#/components/parameters/GroupId'
+      responses:
+        '204': { description: Added }
+  /api/v1/messages/{channel_type}/{channel_id}:
+    get:
+      summary: Read message history through the business gateway
+      parameters:
+        - name: channel_type
+          in: path
+          required: true
+          schema: { type: string, enum: [person, group] }
+        - name: channel_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Message history }
+  /api/v1/messages/{message_id}/revoke:
+    post:
+      summary: Revoke a message
+      parameters:
+        - name: message_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Revoked }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    GroupId:
+      name: group_id
+      in: path
+      required: true
+      schema: { type: string }
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [password]
+      properties:
+        username: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        password: { type: string, minLength: 8, writeOnly: true }
+    LoginRequest:
+      type: object
+      required: [account, password]
+      properties:
+        account: { type: string }
+        password: { type: string, writeOnly: true }
+    LoginResponse:
+      type: object
+      required: [access_token, expires_in, user, im_token, im_endpoint]
+      properties:
+        access_token: { type: string }
+        expires_in: { type: integer, format: int64 }
+        im_token: { type: string }
+        im_endpoint: { type: string, format: uri }
+        user: { type: object }
